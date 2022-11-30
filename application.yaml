@@ -1,0 +1,29 @@
+# example values
+server:
+  port: 8080
+
+spring:
+  datasource:
+    username: search_engine_svc
+    password: search_engine_svc
+    url: jdbc:mysql://localhost:3306/search_engine
+    jpa:
+      properties:
+        hibernate:
+          dialect: org.hibernate.dialect.MySQL8Dialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+indexing-settings:
+  sites:
+    - url: https://fseconomy.net
+      name: fseconomyHome
+
+parse-settings:
+  useragent: Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6
+bad-sites:
+  - url: https://server.fseconomy.net
+    name: fseconomy
+  - url: https://thebalanceffxiv.com
+    name: thebalanceffxiv
