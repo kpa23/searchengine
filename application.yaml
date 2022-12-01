@@ -1,5 +1,6 @@
 # example values
 server:
+  address: 192.168.1.72
   port: 8080
 
 spring:
@@ -11,19 +12,29 @@ spring:
       properties:
         hibernate:
           dialect: org.hibernate.dialect.MySQL8Dialect
+  jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: false
 
 indexing-settings:
   sites:
     - url: https://fseconomy.net
       name: fseconomyHome
 
+
 parse-settings:
-  useragent: Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6
-bad-sites:
+  useragent: Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; rv1.8.1.6) YandexIndexingMachine
+bad-url:
+  - url: https://www.svetlovka.ru
+    name: svetlovka
+  - url: https://dombulgakova.ru
+    name: dombulgakova
+  - url: https://ipfran.ru
+    name: ipfran
+  - url: https://fseconomy.net
+    name: fseconomyHome
   - url: https://server.fseconomy.net
-    name: fseconomy
-  - url: https://thebalanceffxiv.com
-    name: thebalanceffxiv
+    name: fseconomyHomeServer
+  - url: https://nikoartgallery.com
+    name: nikoartgallery

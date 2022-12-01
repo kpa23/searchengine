@@ -1,19 +1,23 @@
 package searchengine.services;
 
 import lombok.RequiredArgsConstructor;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
+import searchengine.config.Parse;
 import searchengine.config.Site;
 import searchengine.config.SitesList;
 import searchengine.dto.indexing.IndexingResponse;
-import searchengine.model.*;
-import searchengine.repository.*;
+import searchengine.model.SiteT;
+import searchengine.model.Status;
+import searchengine.repository.PageTRepository;
+import searchengine.repository.SiteTRepository;
+import searchengine.repository.Utils;
 
 import javax.transaction.Transactional;
 import java.io.IOException;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -26,6 +30,9 @@ public class IndexingServiceImpl implements IndexingService {
     private final PageTRepository pageTRepository;
     private final SiteParser siteParser;
     private final List<SiteT> siteTList = new ArrayList<>();
+    private static final Logger logger = LogManager.getLogger(IndexingServiceImpl.class);
+
+    private final Parse parse;
 
     @Override
     @Transactional
@@ -36,11 +43,10 @@ public class IndexingServiceImpl implements IndexingService {
                 .map(e -> siteTRepository.countByNameAndStatus(e.getName(), Status.INDEXING))
                 .reduce(0, Integer::sum) > 0) {
             response.setResult(false);
-            String ERROR_STARTED = "Индексация уже запущена";
-            response.setError(ERROR_STARTED);
+            response.setError("Индексация уже запущена");
         } else {
 
-            ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(2);
+            ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(4);
             executor.setMaximumPoolSize(Runtime.getRuntime().availableProcessors());
             sitesList.forEach(e -> {
                 SiteParser sp = siteParser.clone();
@@ -52,7 +58,7 @@ public class IndexingServiceImpl implements IndexingService {
                 SiteT siteT = new SiteT(Status.INDEXING, Utils.getTimeStamp(), e.getUrl(), e.getName());
                 siteTRepository.save(siteT);
                 siteTList.add(siteT);
-                sp.init(siteT, 1);
+                sp.init(siteT, 3);
                 executor.execute(sp);
 
             });
@@ -63,17 +69,14 @@ public class IndexingServiceImpl implements IndexingService {
     }
 
 
-
     @Override
     public IndexingResponse getStopIndexing() {
         IndexingResponse response = new IndexingResponse();
         try {
-//            List<SiteT> siteTList = siteTRepository.findAllByStatus(Status.INDEXING).orElseThrow();
             long size = siteTList.stream().filter(e -> e.getStatus() == Status.INDEXING).count();
             if (size == 0) {
                 response.setResult(false);
-                String ERROR_STOPPED = "Индексация не запущена";
-                response.setError(ERROR_STOPPED);
+                response.setError("Индексация не запущена");
             } else {
                 SiteParser.forceStop();
                 siteTList.stream()
@@ -100,20 +103,20 @@ public class IndexingServiceImpl implements IndexingService {
         response.setResult(true);
         SiteParser sp = siteParser.clone();
         String domain = Utils.getProtocolAndDomain(url);
-        String page = url.replace(domain, "");
         SiteT siteT = siteTRepository.findByUrl(domain);
-        PageT pageT = pageTRepository.findBySiteTBySiteIdAndPath(siteT, page);
-        if (siteT != null ) {
+        if (siteT != null) {
             sp.init(siteT, 1);
-            sp.parsePage(pageT, page);
-        }
-        else {
+            ParsePage parsePage = new ParsePage(url, domain, siteT, pageTRepository, siteTRepository, parse, null);
+            try {
+                parsePage.downloadAndSavePage();
+            } catch (IOException ignored) {
+            }
+        } else {
             response.setResult(false);
-            String ERROR_SINGLE = "Данная страница находится за пределами сайтов,\n" +
-                    "указанных в конфигурационном файле";
-            response.setError(ERROR_SINGLE);
+            response.setError("Данная страница находится за пределами сайтов,\n" +
+                    "указанных в конфигурационном файле");
         }
-        System.out.println("page complete");
+        logger.info("page complete");
 
         return response;
     }

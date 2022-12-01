@@ -1,6 +1,8 @@
 package searchengine.model;
 
 import lombok.*;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import javax.persistence.*;
 import java.util.Collection;
@@ -8,6 +10,7 @@ import java.util.Collection;
 @Getter
 @Setter
 @RequiredArgsConstructor
+@NoArgsConstructor
 @Entity
 @Table(name = "page_t", schema = "search_engine")
 public class PageT {
@@ -20,27 +23,24 @@ public class PageT {
     private int siteId;
     @NonNull
     @Basic(optional = false)
-    @Column(name = "path", nullable = false, length = -1)
+    @Column(name = "path", nullable = false, length =255)
     private String path;
     @NonNull
     @Basic(optional = false)
     @Column(name = "code", nullable = false)
     private int code;
     @NonNull
-    @Column(name = "content", length = -1)
+    @Column(name = "content", columnDefinition = "LONGTEXT")
     private String content;
-    @OneToMany(mappedBy = "pageTByPageId", cascade = CascadeType.ALL)
+    @NonNull
+    @Column(name = "title", length = 255)
+    private String title;
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @OneToMany(mappedBy = "pageTByPageId", cascade = CascadeType.REMOVE)
     private Collection<IndexT> indexTSByPageId;
     @ManyToOne
     @JoinColumn(name = "site_id", referencedColumnName = "site_id", nullable = false, insertable = false, updatable = false)
     private SiteT siteTBySiteId;
-
-    public PageT() {
-        siteId = 0;
-        path = null;
-        code = 0;
-        content = null;
-    }
 
     @Override
     public boolean equals(Object o) {

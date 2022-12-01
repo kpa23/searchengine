@@ -1,5 +1,6 @@
 package searchengine.repository;
 
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,6 +15,11 @@ import java.util.List;
 public interface IndexTRepository extends CrudRepository<IndexT, Integer> {
     @Transactional
     void deleteIndexTSByPageTByPageId(PageT pageT);
+
     List<IndexT> findByPageTByPageId(PageT pageT);
+
     List<IndexT> findAllByLemmaTByLemmaId(LemmaT lemmaT);
+
+    @Query("select i from IndexT i join PageT  p on p.pageId = i.pageId where i.lemmaTByLemmaId = ?1 and p.siteTBySiteId = ?2")
+    List<IndexT> findAllByLemmaTByLemmaIdAndSiteId(LemmaT lemmaT, SiteT siteT);
 }

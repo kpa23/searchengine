@@ -11,10 +11,7 @@ import java.util.List;
 public interface PageTRepository extends CrudRepository<PageT, Integer> {
     List<PageT> findBySiteTBySiteIdAndCode(SiteT site, int code);
 
-    PageT findBySiteTBySiteIdAndPath(SiteT site, String path);
-
     int countBySiteTBySiteId(SiteT siteT);
 
-    PageT findBySiteId(int siteId);
-    PageT findByPageId(int PageId);
+    PageT findByPageId(int pageId);
 }

@@ -17,11 +17,13 @@ import searchengine.repository.SiteTRepository;
 import searchengine.repository.Utils;
 
 import java.io.IOException;
+import java.lang.invoke.WrongMethodTypeException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.RecursiveTask;
-import java.util.concurrent.TimeUnit;
 
 
 public class ParsePage extends RecursiveTask<List<String>> {
@@ -36,12 +38,8 @@ public class ParsePage extends RecursiveTask<List<String>> {
     private final PageTRepository pageTRepository;
     private final SiteTRepository siteTRepository;
     private final Parse parse;
-    private final ConcurrentHashMap<String, ParsePage> uniqueLinks;
+    private final ConcurrentMap<String, ParsePage> uniqueLinks;
     private Connection.Response response = null;
-
-    public Connection.Response getResponse() {
-        return response;
-    }
 
     public ParsePage(String url, ParsePage parent) {
         this(url, parent.domain, parent.siteT, parent.pageTRepository, parent.siteTRepository, parent.parse, parent.uniqueLinks);
@@ -51,7 +49,7 @@ public class ParsePage extends RecursiveTask<List<String>> {
 
     public ParsePage(String url, String domain, SiteT siteT
             , PageTRepository pageTRepository, SiteTRepository siteTRepository, Parse parse
-            , ConcurrentHashMap<String, ParsePage> uniqueLinks) {
+            , ConcurrentMap<String, ParsePage> uniqueLinks) {
         this.url = url;
         this.domain = domain;
         this.parent = null;
@@ -61,7 +59,7 @@ public class ParsePage extends RecursiveTask<List<String>> {
         this.pageTRepository = pageTRepository;
         this.siteTRepository = siteTRepository;
         this.parse = parse;
-        this.uniqueLinks = uniqueLinks;
+        this.uniqueLinks = Objects.requireNonNullElseGet(uniqueLinks, ConcurrentHashMap::new);
     }
 
     @Override
@@ -74,41 +72,43 @@ public class ParsePage extends RecursiveTask<List<String>> {
 
         try {
             document = downloadAndSavePage();
-            savePage(document.body().text());
-            TimeUnit.MILLISECONDS.sleep((int) (Math.random() * 100));
+            if (document == null) {
+                throw new NullPointerException("document null");
+            }
             document.outputSettings().escapeMode(Entities.EscapeMode.xhtml);
             Elements elements = document.select("a[href~=^/?([\\w\\d/-]+)?]");
             parseAllHrefs(elements, list, tasks);
             addResultsFromTasks(list, tasks);
-        } catch (IOException | InterruptedException e) {
+        } catch (IOException e) {
             logger.warn(ExceptionUtils.getStackTrace(e));
-            savePage("");
+        } catch (NullPointerException ignored) {
         }
 
         return list;
     }
 
     public Document downloadAndSavePage() throws IOException {
-        Document document;
+        Document document = null;
         try {
             response = Jsoup.connect(domain + url)
                     .userAgent(parse.getUseragent())
                     .referrer("https://www.google.com")
                     .ignoreContentType(true)
-                    .timeout(10000)
+                    .timeout(5000)
                     .ignoreHttpErrors(true)
                     .execute();
-
+            if (!response.contentType().startsWith("text/html;")) {
+                throw new WrongMethodTypeException("wrong format");
+            }
             if (response.statusCode() != 200) throw new IOException(String.valueOf(response.statusCode()));
             document = response.parse();
+            savePage(document.body().text(), document.title());
 
         } catch (IOException e) {
-            logger.warn(ExceptionUtils.getStackTrace(e));
-            savePage("");
-            return null;
+            savePage();
+        } catch (WrongMethodTypeException e) {
         }
         return document;
-
     }
 
     private void parseAllHrefs(Elements elements, List<String> list, List<ParsePage> tasks) {
@@ -128,12 +128,24 @@ public class ParsePage extends RecursiveTask<List<String>> {
         }
     }
 
-    public PageT savePage(String text) {
-        PageT p = new PageT(siteT.getSiteId(), url, response.statusCode(), text);
+    public PageT savePage(String text, String title) {
+
+        int code;
+        if (response == null || (text.equals(""))) {
+            code = 408;
+        } else {
+            code = response.statusCode();
+        }
+        PageT p = new PageT(siteT.getSiteId(), url, code, text, title);
         pageTRepository.save(p);
         siteT.setStatusTime(Utils.getTimeStamp());
         siteTRepository.save(siteT);
         return p;
+    }
+
+    public PageT savePage() {
+        return savePage("", "");
+
     }
 
     @Override
@@ -177,6 +189,9 @@ public class ParsePage extends RecursiveTask<List<String>> {
             }
         } else {
             result = href;
+        }
+        if (result.indexOf("/?") > 0) {
+            result = result.substring(0, result.indexOf("/?") + 1);
         }
         return result;
     }

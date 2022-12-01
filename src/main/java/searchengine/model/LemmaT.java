@@ -1,6 +1,9 @@
 package searchengine.model;
 
 import lombok.*;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+import org.hibernate.annotations.SQLInsert;
 
 import javax.persistence.*;
 import java.util.Collection;
@@ -11,6 +14,7 @@ import java.util.Collection;
 @NoArgsConstructor
 @Entity
 @Table(name = "lemma_t", schema = "search_engine")
+@SQLInsert(sql = "insert into lemma_t(frequency,lemma, site_id ) values (?, ?, ?) on duplicate key update frequency = lemma_t.frequency + 1")
 public class LemmaT {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Id
@@ -25,6 +29,7 @@ public class LemmaT {
     @NonNull
     @Column(name = "frequency", nullable = false)
     private int frequency;
+    @OnDelete(action = OnDeleteAction.CASCADE)
     @OneToMany(mappedBy = "lemmaTByLemmaId", cascade = CascadeType.ALL)
     private Collection<IndexT> indexTSByLemmaId;
     @ManyToOne

@@ -1,6 +1,8 @@
 package searchengine.model;
 
 import lombok.*;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import javax.persistence.*;
 import java.sql.Timestamp;
@@ -9,7 +11,7 @@ import java.util.Collection;
 @Getter
 @Setter
 @RequiredArgsConstructor
-//@NoArgsConstructor
+@NoArgsConstructor
 @Entity
 @Table(name = "site_t", schema = "search_engine")
 public class SiteT {
@@ -27,7 +29,7 @@ public class SiteT {
     @Column(name = "status_time", nullable = false)
     private Timestamp statusTime;
     @Basic
-    @Column(name = "last_error", length = -1)
+    @Column(name = "last_error", length = 2000)
     private String lastError;
     @NonNull
     @Basic(optional = false)
@@ -37,17 +39,12 @@ public class SiteT {
     @Basic(optional = false)
     @Column(name = "name", nullable = false)
     private String name;
+    @OnDelete(action = OnDeleteAction.CASCADE)
     @OneToMany(mappedBy = "siteTBySiteId", cascade = CascadeType.ALL)
     private Collection<LemmaT> lemmaTSBySiteId;
+    @OnDelete(action = OnDeleteAction.CASCADE)
     @OneToMany(mappedBy = "siteTBySiteId", cascade = CascadeType.ALL)
     private Collection<PageT> pageTSBySiteId;
-
-    public SiteT() {
-        status = null;
-        statusTime = null;
-        url = null;
-        name = null;
-    }
 
     @Override
     public boolean equals(Object o) {

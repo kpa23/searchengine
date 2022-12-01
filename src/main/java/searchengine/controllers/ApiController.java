@@ -7,6 +7,7 @@ import searchengine.dto.indexing.IndexingResponse;
 import searchengine.dto.search.SearchResponse;
 import searchengine.dto.statistics.StatisticsResponse;
 import searchengine.services.IndexingService;
+import searchengine.services.SearchQueryBuilder;
 import searchengine.services.SearchService;
 import searchengine.services.StatisticsService;
 
@@ -47,12 +48,18 @@ public class ApiController {
 
     }
 
-    @GetMapping(value = "/search", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+    @GetMapping(value = "/search")
     public ResponseEntity<SearchResponse> search(
             @RequestParam(value = "query") String query,
-            @RequestParam(value = "site") String site,
-            @RequestParam(value = "offset") int offset,
-            @RequestParam(value = "limit") int limit) {
-        return ResponseEntity.ok(searchService.search(query, site, offset, limit));
+            @RequestParam(value = "site", required = false) String site,
+            @RequestParam(value = "offset", required = false) Integer offset,
+            @RequestParam(value = "limit", required = false) Integer limit) {
+        SearchQueryBuilder sb = SearchQueryBuilder.newBuilder()
+                .withQuery(query)
+                .withSite(site)
+                .withOffset(offset)
+                .withLimit(limit)
+                .build();
+        return ResponseEntity.ok(searchService.search(sb.getQuery(), sb.getSite(), sb.getOffset(), sb.getLimit()));
     }
 }

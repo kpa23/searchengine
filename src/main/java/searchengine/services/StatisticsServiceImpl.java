@@ -8,7 +8,6 @@ import searchengine.dto.statistics.DetailedStatisticsItem;
 import searchengine.dto.statistics.StatisticsData;
 import searchengine.dto.statistics.StatisticsResponse;
 import searchengine.dto.statistics.TotalStatistics;
-import searchengine.model.PageT;
 import searchengine.model.SiteT;
 import searchengine.repository.IndexTRepository;
 import searchengine.repository.LemmaTRepository;
@@ -33,13 +32,6 @@ public class StatisticsServiceImpl implements StatisticsService {
 
     @Override
     public StatisticsResponse getStatistics() {
-        String[] statuses = { "INDEXED", "FAILED", "INDEXING" };
-        String[] errors = {
-                "Ошибка индексации: главная страница сайта не доступна",
-                "Ошибка индексации: сайт не доступен",
-                ""
-        };
-
         TotalStatistics total = new TotalStatistics();
         total.setSites(sites.getSites().size());
         total.setIndexing(true);
@@ -50,7 +42,10 @@ public class StatisticsServiceImpl implements StatisticsService {
             DetailedStatisticsItem item = new DetailedStatisticsItem();
             item.setName(site.getName());
             item.setUrl(site.getUrl());
-            SiteT siteT = siteTRepository.findByName(site.getName()).orElseThrow().get(0);
+            List<SiteT> optSite = siteTRepository.findByName(site.getName()).orElse(null);
+            if (optSite == null || optSite.isEmpty()) continue;
+
+            SiteT siteT = optSite.get(0);
 
             int pages = pageTRepository.countBySiteTBySiteId(siteT);
 

@@ -16,6 +16,9 @@ public class SearchClassAllPages {
         allPages.add(searchClassList);
     }
 
+    public int size(){
+        return allPages.size();
+    }
     public void intersectAll() {
         SearchClassList searchClassList = allPages.get(0);
         // intersect first page with all others
@@ -38,13 +41,11 @@ public class SearchClassAllPages {
                             }
                     );
         }
-        mapRank.entrySet().forEach(e -> e.getValue().setRelRank(e.getValue().getRankSum() / maxRank));
+        mapRank.forEach((key, value) -> value.setRelRank(value.getRankSum() / maxRank));
         // make sorted hashmap
         Comparator<PageRel> byRel = Comparator.comparingDouble(PageRel::getRelRank);
         sortedMap = mapRank.entrySet().stream()
                 .sorted(Map.Entry.comparingByValue(Collections.reverseOrder(byRel)))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
-
-        System.out.println("---");
     }
 }

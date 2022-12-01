@@ -3,6 +3,7 @@ package searchengine.services;
 import org.apache.lucene.morphology.LuceneMorphology;
 import org.apache.lucene.morphology.english.EnglishLuceneMorphology;
 import org.apache.lucene.morphology.russian.RussianLuceneMorphology;
+import searchengine.dto.search.LemmaItem;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -14,8 +15,7 @@ import java.util.Map;
 public class LemmaFinder {
     private final LuceneMorphology morphologyRus;
     private final LuceneMorphology morphologyEng;
-    private static final String WORD_TYPE_REGEX = "\\W\\w&&[^а-яА-Я\\s]";
-    private static final String[] particlesNames = new String[]{"МЕЖД", "ПРЕДЛ", "СОЮЗ", "CONJ", "VERB", "INT", "PREP"};
+    private static final String[] particlesNames = new String[]{"МЕЖД", "ПРЕДЛ", "СОЮЗ", "CONJ", "INT", "PREP", "ARTICLE", "PART"};
 
 
     public static LemmaFinder getInstance() throws IOException {
@@ -40,40 +40,90 @@ public class LemmaFinder {
      * @return ключ является леммой, а значение количеством найденных лемм
      */
     public Map<String, Integer> collectLemmas(String text) {
-        String[] words = splitWords(text);
+        String[] words = splitWords(text, false);
 
         HashMap<String, Integer> lemmas = new HashMap<>();
-        LuceneMorphology luceneMorphology;
         for (String word : words) {
-            if (word.isBlank()) {
-                continue;
-            }
-
-            if (isRussian(word)) {
-                luceneMorphology = morphologyRus;
-            } else {
-                luceneMorphology = morphologyEng;
-            }
-            List<String> wordBaseForms = luceneMorphology.getMorphInfo(word);
-            if (anyWordBaseBelongToParticle(wordBaseForms)) {
-                continue;
-            }
-
-            List<String> normalForms = luceneMorphology.getNormalForms(word);
-            if (normalForms.isEmpty()) {
-                continue;
-            }
-            String normalWord = normalForms.get(0);
+            String normalWord = getNormalWord(word);
+            if (normalWord == null) continue;
             lemmas.put(normalWord, lemmas.getOrDefault(normalWord, 0) + 1);
         }
         return lemmas;
     }
 
-    private String[] splitWords(String text) {
-        return text.toLowerCase(Locale.ROOT)
-                .replaceAll("([^а-яa-z\\s])", " ")
-                .trim()
-                .split("\\s+");
+    public Map<LemmaItem, Integer> collectLemmasMap(String text) {
+        String[] words = splitWords(text, false);
+
+        HashMap<LemmaItem, Integer> lemmas = new HashMap<>();
+        for (String word : words) {
+            String normalWord = getNormalWord(word);
+            if (normalWord == null) continue;
+            lemmas.put(new LemmaItem(normalWord, word), lemmas.getOrDefault(new LemmaItem(normalWord, word), 0) + 1);
+        }
+        return lemmas;
+    }
+
+    /**
+     * Метод разделяет текст на слова, находит все леммы и считает их количество.
+     *
+     * @param text текст из которого будут выбираться леммы
+     * @return ключ является леммой, а значение количеством найденных лемм
+     */
+    public Map<Integer, String> collectLemmasList(String text) {
+        String[] words = splitWords(text, true);
+
+        HashMap<Integer, String> lemmas = new HashMap<>();
+        int i = 0;
+        for (String word : words) {
+            i++;
+            String normalWord = getNormalWord(word);
+            if (normalWord == null) continue;
+            lemmas.put(i, normalWord);
+        }
+        return lemmas;
+    }
+
+    private String getNormalWord(String word) {
+        LuceneMorphology luceneMorphology;
+        if (word.isBlank()) {
+            return null;
+        }
+
+        if (isRussian(word)) {
+            luceneMorphology = morphologyRus;
+        } else {
+            luceneMorphology = morphologyEng;
+        }
+        try {
+            List<String> wordBaseForms = luceneMorphology.getMorphInfo(word);
+            if (anyWordBaseBelongToParticle(wordBaseForms)) {
+                return null;
+            }
+        } catch (Exception e) {
+            return null;
+        }
+
+        List<String> normalForms = luceneMorphology.getNormalForms(word);
+        if (normalForms.isEmpty()) {
+            return null;
+        }
+        return normalForms.get(0);
+    }
+
+    private String[] splitWords(String text, boolean saveOriginal) {
+        String[] split;
+        if (saveOriginal) {
+            split = text.toLowerCase(Locale.ROOT)
+                    .trim()
+                    .split("\\s+");
+
+        } else {
+            split = text.toLowerCase(Locale.ROOT)
+                    .replaceAll("([^а-яa-z\\s])", " ")
+                    .trim()
+                    .split("\\s+");
+        }
+        return split;
     }
 
     private static boolean isRussian(String word) {

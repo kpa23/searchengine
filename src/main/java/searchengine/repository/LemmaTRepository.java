@@ -10,9 +10,6 @@ import java.util.List;
 @Repository
 public interface LemmaTRepository extends CrudRepository<LemmaT, Integer> {
 
-    LemmaT findBySiteTBySiteIdAndLemma(SiteT siteT, String lemma);
-
-    //    List<LemmaT> findBy(SiteT siteT, String lemma);
     List<LemmaT> findAllByLemmaId(int lemmaId);
 
     List<LemmaT> findAllByLemma(String lemma);
