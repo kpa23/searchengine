@@ -8,6 +8,7 @@ Search engine implementation. This program:
 
 # Tech info
 Backend: Java 8+, mysql(docker container), Spring boot 2.7.1, apache.lucene.morphology for text processing, jsoup for web parsing.
+
 Frontend: javascript+html
 
 # how to run:
