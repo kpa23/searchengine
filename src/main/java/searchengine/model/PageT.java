@@ -36,7 +36,7 @@ public class PageT {
     @Column(name = "title", length = 255)
     private String title;
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @OneToMany(mappedBy = "pageTByPageId", cascade = CascadeType.REMOVE)
+    @OneToMany(mappedBy = "pageTByPageId", cascade = CascadeType.MERGE)
     private Collection<IndexT> indexTSByPageId;
     @ManyToOne
     @JoinColumn(name = "site_id", referencedColumnName = "site_id", nullable = false, insertable = false, updatable = false)

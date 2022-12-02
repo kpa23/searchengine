@@ -21,7 +21,10 @@ indexing-settings:
   sites:
     - url: https://fseconomy.net
       name: fseconomyHome
-
+    - url: https://nikoartgallery.com
+      name: nikoartgallery
+    - url: https://dombulgakova.ru
+      name: dombulgakova
 
 parse-settings:
   useragent: Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; rv1.8.1.6) YandexIndexingMachine
@@ -38,3 +41,5 @@ bad-url:
     name: fseconomyHomeServer
   - url: https://nikoartgallery.com
     name: nikoartgallery
+
+

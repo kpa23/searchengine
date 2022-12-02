@@ -5,6 +5,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import searchengine.model.IndexT;
 import searchengine.model.LemmaT;
 import searchengine.model.PageT;
@@ -31,60 +32,36 @@ public class LemmaParser {
     private final IndexTRepository indexTRepository;
     private SiteT siteT;
 
-    public LemmaParser clone() {
+    public LemmaParser copy() {
         return new LemmaParser(this.pageTRepository, this.siteTRepository, this.lemmaTRepository, this.indexTRepository);
     }
 
-    public void parsePage(PageT pageT, boolean retry) {
+    @Transactional
+    public void parsePage(PageT pageT) {
         try {
-
-//            String url;
-//            if (pageT == null) {
-////                url = page;
-//            } else {
-//                url = pageT.getPath();
-//                if (retry) {
-////                    deletePage(pageT, siteT);
-//                }
-//            }
-            PageT finalPageT;
-//            if (retry) {
-//                ParsePage parsePage = new ParsePage(url, domain, siteT, pageTRepository, siteTRepository, parse, uniqueLinks);
-//
-//                Document d = parsePage.downloadAndSavePage();
-//                finalPageT = parsePage.savePage(d.body().text(), d.title());
-//            } else
-            finalPageT = pageT;
-
             LemmaFinder l = LemmaFinder.getInstance();
-
-            Map<String, Integer> lemmaMap = l.collectLemmas(finalPageT.getContent());
+            Map<String, Integer> lemmaMap = l.collectLemmas(pageT.getContent());
             Map<LemmaT, Integer> lemmaTList = new HashMap<>();
             List<IndexT> indexTList = new ArrayList<>();
-
             lemmaMap.entrySet().forEach(lemma -> lemmaTList.put(parseLemma(lemma.getKey()), lemma.getValue()));
             lemmaTRepository.saveAll(lemmaTList.keySet());
-            lemmaTList.entrySet().forEach(e -> indexTList.add(new IndexT(finalPageT.getPageId(), e.getKey().getLemmaId(), e.getValue())));
+            lemmaTList.entrySet().forEach(e -> indexTList.add(new IndexT(pageT.getPageId(), e.getKey().getLemmaId(), e.getValue())));
             indexTRepository.saveAll(indexTList);
-        } catch (IOException | NullPointerException e) {
+        } catch (NullPointerException e) {
             logger.warn(ExceptionUtils.getStackTrace(e));
         }
     }
 
     public LemmaT parseLemma(String lemmaText) {
-        return new LemmaT(siteT.getSiteId(), lemmaText, 1);
+        LemmaT result = lemmaTRepository.findByLemmaAndSiteTBySiteId(lemmaText, siteT);
+        if (result == null) {
+            result = new LemmaT(siteT.getSiteId(), lemmaText, 1);
+        } else {
+            result.setFrequency(result.getFrequency() + 1);
+        }
+        return result;
     }
 
-    public void deletePage(PageT pageT, SiteT siteT) {
-        List<IndexT> indexTList = indexTRepository.findByPageTByPageId(pageT);
-        indexTList.forEach(e ->
-                lemmaTRepository
-                        .findAllByLemmaId(e.getLemmaId())
-                        .forEach(lemmaT -> lemmaT.setFrequency(lemmaT.getFrequency() - 1))
-        );
-        lemmaTRepository.deleteBySiteTBySiteIdAndFrequency(siteT, 0);
-        pageTRepository.delete(pageT);
-    }
 
     public void setSiteT(SiteT siteT) {
         this.siteT = siteT;

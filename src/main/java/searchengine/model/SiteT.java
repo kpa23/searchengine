@@ -40,10 +40,10 @@ public class SiteT {
     @Column(name = "name", nullable = false)
     private String name;
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @OneToMany(mappedBy = "siteTBySiteId", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "siteTBySiteId", cascade = CascadeType.MERGE)
     private Collection<LemmaT> lemmaTSBySiteId;
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @OneToMany(mappedBy = "siteTBySiteId", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "siteTBySiteId", cascade = CascadeType.MERGE)
     private Collection<PageT> pageTSBySiteId;
 
     @Override

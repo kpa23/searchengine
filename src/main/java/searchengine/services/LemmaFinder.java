@@ -18,10 +18,14 @@ public class LemmaFinder {
     private static final String[] particlesNames = new String[]{"МЕЖД", "ПРЕДЛ", "СОЮЗ", "CONJ", "INT", "PREP", "ARTICLE", "PART"};
 
 
-    public static LemmaFinder getInstance() throws IOException {
-        LuceneMorphology morphologyRus = new RussianLuceneMorphology();
-        LuceneMorphology morphologyEng = new EnglishLuceneMorphology();
-        return new LemmaFinder(morphologyRus, morphologyEng);
+    public static LemmaFinder getInstance() {
+        try {
+            LuceneMorphology morphologyRus = new RussianLuceneMorphology();
+            LuceneMorphology morphologyEng = new EnglishLuceneMorphology();
+            return new LemmaFinder(morphologyRus, morphologyEng);
+        } catch (IOException e) {//
+        }
+        return null;
     }
 
     private LemmaFinder(LuceneMorphology luceneMorphologyRus, LuceneMorphology luceneMorphologyEng) {
@@ -29,8 +33,9 @@ public class LemmaFinder {
         this.morphologyEng = luceneMorphologyEng;
     }
 
+
     private LemmaFinder() {
-        throw new RuntimeException("Disallow construct");
+        throw new IllegalArgumentException("Disallow construct");
     }
 
     /**

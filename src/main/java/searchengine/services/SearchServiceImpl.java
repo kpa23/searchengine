@@ -21,18 +21,19 @@ public class SearchServiceImpl implements SearchService {
     private final PageTRepository pageTRepository;
     private final LemmaTRepository lemmaTRepository;
     private final IndexTRepository indexTRepository;
-
-    private final List<String> queryLemmas = new ArrayList<>();
+    private LemmaFinder lemmaFinder = LemmaFinder.getInstance();
+    private List<String> queryLemmas = new ArrayList<>();
 
 
     @Override
     public SearchResponse search(String query, String site, Integer offset, Integer limit) {
+        queryLemmas = new ArrayList<>();
         SearchResponse searchResponse = new SearchResponse();
         try {
             SearchClassAllPages searchClassAllPages = new SearchClassAllPages();
-            LemmaFinder l = LemmaFinder.getInstance();
+
             SiteT searchSite = siteTRepository.findByUrl(site);
-            Map<LemmaItem, Integer> lemmaMap = l.collectLemmasMap(query);
+            Map<LemmaItem, Integer> lemmaMap = lemmaFinder.collectLemmasMap(query);
             lemmaMap.keySet().forEach(lem -> {
                 queryLemmas.add(lem.getLemma());
                 SearchClassList searchClassList = new SearchClassList(lem.getLemma());
@@ -59,6 +60,7 @@ public class SearchServiceImpl implements SearchService {
             //
             //printing the sorted hashmap
             Set<Map.Entry<Integer, PageRel>> set = searchClassAllPages.getSortedMap().entrySet();
+
             int cnt = 0;
             for (Map.Entry<Integer, PageRel> me2 : set) {
                 cnt++;
@@ -66,7 +68,7 @@ public class SearchServiceImpl implements SearchService {
                 if (cnt > limit + offset) break;
                 PageT pageT = pageTRepository.findByPageId(me2.getKey());
                 String text = pageT.getContent().replaceAll("\\s{2,}", " ").trim();
-                Map<Integer, String> textLemList = l.collectLemmasList(text);
+                Map<Integer, String> textLemList = lemmaFinder.collectLemmasList(text);
                 String word = lemmaMap.keySet().stream().findAny().orElseThrow().getLemma();
                 int pos = textLemList.entrySet()
                         .stream()
@@ -87,36 +89,32 @@ public class SearchServiceImpl implements SearchService {
         return searchResponse;
     }
 
+
     public String getAt(String st, int pos) {
         StringBuilder sb = new StringBuilder();
-        try {
-            String[] tokens = st.split(" ");
-            LemmaFinder l = LemmaFinder.getInstance();
+        String[] tokens = st.split(" ");
 
-            int pre = 10;
-            int post = 10;
-            if (pos < pre) {
-                pre = pos;
-                post = post + 10 - pos;
-            }
-            if (pos > tokens.length - post) {
-                post = tokens.length - post - 1;
-                pre = pre + (10 - post);
-            }
-
-            for (int i = pos - pre; i < pos + post; i++) {
-                if (l.collectLemmas(tokens[i]).size() > 0 &&
-                        queryLemmas.contains(l.collectLemmas(tokens[i]).keySet().stream().findFirst().orElse(""))) {
-                    sb.append("<b>").append(tokens[i]).append("</b>");
-                } else {
-                    sb.append(tokens[i]);
-                }
-                sb.append(" ");
-            }
-
-        } catch (IOException e) {
-            e.printStackTrace();
+        int pre = 10;
+        int post = 10;
+        if (pos < pre) {
+            pre = pos;
+            post = post + 10 - pos;
         }
+        if (pos > tokens.length - post) {
+            post = tokens.length - post - 1;
+            pre = pre + (10 - post);
+        }
+
+        for (int i = pos - pre; i < pos + post; i++) {
+            if (lemmaFinder.collectLemmas(tokens[i]).size() > 0 &&
+                    queryLemmas.contains(lemmaFinder.collectLemmas(tokens[i]).keySet().stream().findFirst().orElse(""))) {
+                sb.append("<b>").append(tokens[i]).append("</b>");
+            } else {
+                sb.append(tokens[i]);
+            }
+            sb.append(" ");
+        }
+
         return sb.toString();
     }
 

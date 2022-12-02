@@ -4,18 +4,15 @@ import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
-import searchengine.config.Parse;
 import searchengine.config.Site;
 import searchengine.config.SitesList;
 import searchengine.dto.indexing.IndexingResponse;
 import searchengine.model.SiteT;
 import searchengine.model.Status;
-import searchengine.repository.PageTRepository;
 import searchengine.repository.SiteTRepository;
 import searchengine.repository.Utils;
 
 import javax.transaction.Transactional;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -27,12 +24,9 @@ import java.util.concurrent.ThreadPoolExecutor;
 public class IndexingServiceImpl implements IndexingService {
     private final SitesList sites;
     private final SiteTRepository siteTRepository;
-    private final PageTRepository pageTRepository;
     private final SiteParser siteParser;
     private final List<SiteT> siteTList = new ArrayList<>();
     private static final Logger logger = LogManager.getLogger(IndexingServiceImpl.class);
-
-    private final Parse parse;
 
     @Override
     @Transactional
@@ -49,7 +43,7 @@ public class IndexingServiceImpl implements IndexingService {
             ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(4);
             executor.setMaximumPoolSize(Runtime.getRuntime().availableProcessors());
             sitesList.forEach(e -> {
-                SiteParser sp = siteParser.clone();
+                SiteParser sp = siteParser.copy();
                 String name = e.getName();
                 Optional<List<SiteT>> byName = siteTRepository.findByName(name);
                 if (byName.isPresent()) {
@@ -63,7 +57,6 @@ public class IndexingServiceImpl implements IndexingService {
 
             });
             response.setResult(true);
-            response.setError(sitesList.toString()); //TODO: fix response
         }
         return response;
     }
@@ -101,23 +94,24 @@ public class IndexingServiceImpl implements IndexingService {
     public IndexingResponse indexPage(String url) {
         IndexingResponse response = new IndexingResponse();
         response.setResult(true);
-        SiteParser sp = siteParser.clone();
-        String domain = Utils.getProtocolAndDomain(url);
-        SiteT siteT = siteTRepository.findByUrl(domain);
-        if (siteT != null) {
-            sp.init(siteT, 1);
-            ParsePage parsePage = new ParsePage(url, domain, siteT, pageTRepository, siteTRepository, parse, null);
-            try {
-                parsePage.downloadAndSavePage();
-            } catch (IOException ignored) {
+        SiteParser sp = siteParser.copy();
+        try {
+            String domain = Utils.getProtocolAndDomain(url);
+
+            String uri = url.replace(domain, "");
+            SiteT siteT = siteTRepository.findByUrl(domain);
+            if (siteT != null) {
+                sp.init(siteT, 1);
+                sp.reloadPage(uri);
+            } else {
+                throw new IllegalArgumentException("bad site");
             }
-        } else {
+            logger.info("page complete");
+        } catch (Exception e) {
             response.setResult(false);
             response.setError("Данная страница находится за пределами сайтов,\n" +
                     "указанных в конфигурационном файле");
         }
-        logger.info("page complete");
-
         return response;
     }
 

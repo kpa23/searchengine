@@ -24,6 +24,7 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.RecursiveTask;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 
 public class ParsePage extends RecursiveTask<List<String>> {
@@ -81,7 +82,7 @@ public class ParsePage extends RecursiveTask<List<String>> {
             addResultsFromTasks(list, tasks);
         } catch (IOException e) {
             logger.warn(ExceptionUtils.getStackTrace(e));
-        } catch (NullPointerException ignored) {
+        } catch (NullPointerException ignored) {//
         }
 
         return list;
@@ -106,7 +107,7 @@ public class ParsePage extends RecursiveTask<List<String>> {
 
         } catch (IOException e) {
             savePage();
-        } catch (WrongMethodTypeException e) {
+        } catch (WrongMethodTypeException e) { //
         }
         return document;
     }
@@ -164,6 +165,12 @@ public class ParsePage extends RecursiveTask<List<String>> {
     }
 
     private boolean checkAddUrl(String url) {
+//        AtomicBoolean isExist = new AtomicBoolean(true);
+//        uniqueLinks.computeIfAbsent(url, e -> {
+//            uniqueLinks.put(url, this);
+//            isExist.set(false);
+//            return null;
+//        });
         boolean isExist = uniqueLinks.containsKey(url);
         if (!isExist) {
             uniqueLinks.put(url, this);

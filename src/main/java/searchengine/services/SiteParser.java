@@ -5,13 +5,16 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.hibernate.SessionFactory;
 import org.springframework.stereotype.Service;
 import searchengine.config.Parse;
+import searchengine.model.IndexT;
 import searchengine.model.PageT;
 import searchengine.model.SiteT;
 import searchengine.model.Status;
 import searchengine.repository.*;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -33,10 +36,11 @@ public class SiteParser implements Runnable {
     private final LemmaTRepository lemmaTRepository;
     private final IndexTRepository indexTRepository;
     private final LemmaParser lemmaParser;
+    private final SessionFactory sessionFactory;
     private final Parse parse;
 
-    public SiteParser clone() {
-        return new SiteParser(this.pageTRepository, this.siteTRepository, this.lemmaTRepository, this.indexTRepository, this.lemmaParser, this.parse);
+    public SiteParser copy() {
+        return new SiteParser(this.pageTRepository, this.siteTRepository, this.lemmaTRepository, this.indexTRepository, this.lemmaParser, sessionFactory, this.parse);
     }
 
     public void init(SiteT siteT, int parallelism) {
@@ -85,14 +89,15 @@ public class SiteParser implements Runnable {
 
     public void parseAllPages() {
         List<PageT> pageTList = pageTRepository.findBySiteTBySiteIdAndCode(siteT, 200);
-        pageTList.forEach(pageT -> {
-            LemmaParser newLemmaParser = lemmaParser.clone();
-            newLemmaParser.setSiteT(siteT);
-            newLemmaParser.parsePage(pageT, false);
-        });
+        pageTList.forEach(this::parseSinglePage);
 
     }
 
+    public void parseSinglePage(PageT pageT) {
+        LemmaParser newLemmaParser = lemmaParser.copy();
+        newLemmaParser.setSiteT(siteT);
+        newLemmaParser.parsePage(pageT);
+    }
 
     @Override
     public void run() {
@@ -109,5 +114,31 @@ public class SiteParser implements Runnable {
             poolList.forEach(ForkJoinPool::shutdownNow);
             poolList = new ConcurrentLinkedQueue<>();
         }
+    }
+
+
+    public void deletePage(PageT pageT, SiteT siteT) {
+        List<IndexT> indexTList = indexTRepository.findByPageTByPageId(pageT);
+        indexTList.forEach(e ->
+                lemmaTRepository
+                        .findAllByLemmaId(e.getLemmaId())
+                        .forEach(lemmaT -> lemmaT.setFrequency(lemmaT.getFrequency() - 1))
+        );
+        lemmaTRepository.deleteBySiteTBySiteIdAndFrequency(siteT, 0);
+        pageTRepository.delete(pageT);
+    }
+
+    public void reloadPage(String uri) {
+        PageT pageT = pageTRepository.findBySiteTBySiteIdAndPath(siteT, uri);
+        if (pageT != null) {
+            deletePage(pageT, siteT);
+        }
+        ParsePage parsePage = new ParsePage(uri, domain, siteT, pageTRepository, siteTRepository, parse, null);
+        try {
+            parsePage.downloadAndSavePage();
+        } catch (IOException ignored) {//
+        }
+        pageT = pageTRepository.findBySiteTBySiteIdAndPath(siteT, uri);
+        parseSinglePage(pageT);
     }
 }

@@ -30,7 +30,7 @@ public class LemmaT {
     @Column(name = "frequency", nullable = false)
     private int frequency;
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @OneToMany(mappedBy = "lemmaTByLemmaId", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "lemmaTByLemmaId", cascade = CascadeType.MERGE)
     private Collection<IndexT> indexTSByLemmaId;
     @ManyToOne
     @JoinColumn(name = "site_id", referencedColumnName = "site_id", nullable = false, insertable = false, updatable = false)

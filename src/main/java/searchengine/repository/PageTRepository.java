@@ -14,4 +14,6 @@ public interface PageTRepository extends CrudRepository<PageT, Integer> {
     int countBySiteTBySiteId(SiteT siteT);
 
     PageT findByPageId(int pageId);
+
+    PageT findBySiteTBySiteIdAndPath(SiteT siteT, String path);
 }

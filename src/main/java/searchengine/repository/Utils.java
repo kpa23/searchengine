@@ -7,6 +7,10 @@ import java.util.regex.Pattern;
 
 public class Utils {
 
+    private Utils() {
+        throw new IllegalStateException("Utility class");
+    }
+
     public static String getProtocolAndDomain(String url) {
         String regEx = "(^https:\\/\\/)(?:[^@\\/\\n]+@)?(?:www\\.)?([^:\\/\\n]+)";
         ByteBuffer buffer = StandardCharsets.UTF_8.encode(regEx);
