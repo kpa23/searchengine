@@ -9,7 +9,6 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Entities;
 import org.jsoup.select.Elements;
-import searchengine.config.Parse;
 import searchengine.model.PageT;
 import searchengine.model.SiteT;
 import searchengine.repository.PageTRepository;
@@ -24,33 +23,31 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.RecursiveTask;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 
-public class ParsePage extends RecursiveTask<List<String>> {
-    private static final Logger logger = LogManager.getLogger(ParsePage.class);
+public class PageParse extends RecursiveTask<List<String>> {
+    private static final Logger logger = LogManager.getLogger(PageParse.class);
 
     private final String url;
     private final String domain;
-    private ParsePage parent;
-    private final List<ParsePage> links;
+    private PageParse parent;
+    private final List<PageParse> links;
     private int level;
     private final SiteT siteT;
     private final PageTRepository pageTRepository;
     private final SiteTRepository siteTRepository;
-    private final Parse parse;
-    private final ConcurrentMap<String, ParsePage> uniqueLinks;
+    private final ConcurrentMap<String, PageParse> uniqueLinks;
     private Connection.Response response = null;
 
-    public ParsePage(String url, ParsePage parent) {
-        this(url, parent.domain, parent.siteT, parent.pageTRepository, parent.siteTRepository, parent.parse, parent.uniqueLinks);
+    public PageParse(String url, PageParse parent) {
+        this(url, parent.domain, parent.siteT, parent.pageTRepository, parent.siteTRepository, parent.uniqueLinks);
         this.parent = parent;
         this.level = parent.level + 1;
     }
 
-    public ParsePage(String url, String domain, SiteT siteT
-            , PageTRepository pageTRepository, SiteTRepository siteTRepository, Parse parse
-            , ConcurrentMap<String, ParsePage> uniqueLinks) {
+    public PageParse(String url, String domain, SiteT siteT
+            , PageTRepository pageTRepository, SiteTRepository siteTRepository
+            , ConcurrentMap<String, PageParse> uniqueLinks) {
         this.url = url;
         this.domain = domain;
         this.parent = null;
@@ -59,14 +56,13 @@ public class ParsePage extends RecursiveTask<List<String>> {
         this.siteT = siteT;
         this.pageTRepository = pageTRepository;
         this.siteTRepository = siteTRepository;
-        this.parse = parse;
         this.uniqueLinks = Objects.requireNonNullElseGet(uniqueLinks, ConcurrentHashMap::new);
     }
 
     @Override
     protected List<String> compute() {
         List<String> list = new ArrayList<>();
-        List<ParsePage> tasks = new ArrayList<>();
+        List<PageParse> tasks = new ArrayList<>();
 
         Document document;
         uniqueLinks.put("/", this);
@@ -92,7 +88,8 @@ public class ParsePage extends RecursiveTask<List<String>> {
         Document document = null;
         try {
             response = Jsoup.connect(domain + url)
-                    .userAgent(parse.getUseragent())
+                    .userAgent("Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; rv1.8.1.6) YandexIndexingMachine")
+//                    .userAgent(parse.getUseragent())
                     .referrer("https://www.google.com")
                     .ignoreContentType(true)
                     .timeout(5000)
@@ -112,7 +109,7 @@ public class ParsePage extends RecursiveTask<List<String>> {
         return document;
     }
 
-    private void parseAllHrefs(Elements elements, List<String> list, List<ParsePage> tasks) {
+    private void parseAllHrefs(Elements elements, List<String> list, List<PageParse> tasks) {
         for (Element e : elements) {
             String href = e.attr("href").replace("//www.", "//");
             if (!href.startsWith(this.domain) &&
@@ -121,7 +118,7 @@ public class ParsePage extends RecursiveTask<List<String>> {
             String checkUrl = generateUrl(href).replace(domain, "");
             if (!checkAddUrl(checkUrl)) {
                 list.add(checkUrl);
-                ParsePage newParse = new ParsePage(checkUrl, this);
+                PageParse newParse = new PageParse(checkUrl, this);
                 newParse.fork();
                 tasks.add(newParse);
                 links.add(newParse);
@@ -158,8 +155,8 @@ public class ParsePage extends RecursiveTask<List<String>> {
         return sb.toString();
     }
 
-    private void addResultsFromTasks(List<String> list, List<ParsePage> tasks) {
-        for (ParsePage item : tasks) {
+    private void addResultsFromTasks(List<String> list, List<PageParse> tasks) {
+        for (PageParse item : tasks) {
             list.addAll(item.join());
         }
     }

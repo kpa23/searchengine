@@ -36,11 +36,10 @@ public class SiteParser implements Runnable {
     private final LemmaTRepository lemmaTRepository;
     private final IndexTRepository indexTRepository;
     private final LemmaParser lemmaParser;
-    private final SessionFactory sessionFactory;
-    private final Parse parse;
+//    private final ParsePage;
 
     public SiteParser copy() {
-        return new SiteParser(this.pageTRepository, this.siteTRepository, this.lemmaTRepository, this.indexTRepository, this.lemmaParser, sessionFactory, this.parse);
+        return new SiteParser(this.pageTRepository, this.siteTRepository, this.lemmaTRepository, this.indexTRepository, this.lemmaParser);
     }
 
     public void init(SiteT siteT, int parallelism) {
@@ -53,7 +52,7 @@ public class SiteParser implements Runnable {
     public void getLinks() {
         pool = new ForkJoinPool(this.parallelism);
         poolList.add(pool);
-        ParsePage parsedMap = new ParsePage("/", domain, siteT, pageTRepository, siteTRepository, parse, null);
+        PageParse parsedMap = new PageParse("/", domain, siteT, pageTRepository, siteTRepository, null);
         StringBuilder sb = new StringBuilder();
         sb.append("************** \n\t%s *******************\n");
         sb.append("Main: Parallelism: %d\n");
@@ -133,9 +132,9 @@ public class SiteParser implements Runnable {
         if (pageT != null) {
             deletePage(pageT, siteT);
         }
-        ParsePage parsePage = new ParsePage(uri, domain, siteT, pageTRepository, siteTRepository, parse, null);
+        PageParse PageParse = new PageParse(uri, domain, siteT, pageTRepository, siteTRepository, null);
         try {
-            parsePage.downloadAndSavePage();
+            PageParse.downloadAndSavePage();
         } catch (IOException ignored) {//
         }
         pageT = pageTRepository.findBySiteTBySiteIdAndPath(siteT, uri);

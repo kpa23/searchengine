@@ -53,7 +53,7 @@ class SearchClassListTest {
     void Intersect2() {
         searchClassList.addList(indexTList2);
         searchClassList.intersectData(searchClassList2.getData());
-        assertEquals(11, searchClassList.getData().size());
+        assertEquals(8, searchClassList.getData().size());
 
     }
 }
