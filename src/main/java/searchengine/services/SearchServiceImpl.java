@@ -1,6 +1,8 @@
 package searchengine.services;
 
 import lombok.RequiredArgsConstructor;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 import searchengine.dto.search.*;
 import searchengine.model.IndexT;
@@ -23,7 +25,7 @@ public class SearchServiceImpl implements SearchService {
     private final IndexTRepository indexTRepository;
     private LemmaFinder lemmaFinder = LemmaFinder.getInstance();
     private List<String> queryLemmas = new ArrayList<>();
-
+    private static final Logger logger = LogManager.getLogger(SearchServiceImpl.class);
 
     @Override
     public SearchResponse search(String query, String site, Integer offset, Integer limit) {
@@ -81,9 +83,11 @@ public class SearchServiceImpl implements SearchService {
                 SearchData searchData = new SearchData(siteT.getUrl(), siteT.getName(), pageT.getPath(), pageT.getTitle(), snippet, searchClassAllPages.getMapRank().get(me2.getKey()).getRelRank());
                 searchResponse.dataAdd(searchData);
             }
+            logger.info("query = \t" + query);
             searchResponse.setResult(true);
             searchResponse.setCount(set.size());
         } catch (IOException e) {
+            logger.error("wrong query\n" + query);
             searchResponse.setResult(false);
         }
         return searchResponse;

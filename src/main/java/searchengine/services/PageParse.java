@@ -162,12 +162,6 @@ public class PageParse extends RecursiveTask<List<String>> {
     }
 
     private boolean checkAddUrl(String url) {
-//        AtomicBoolean isExist = new AtomicBoolean(true);
-//        uniqueLinks.computeIfAbsent(url, e -> {
-//            uniqueLinks.put(url, this);
-//            isExist.set(false);
-//            return null;
-//        });
         boolean isExist = uniqueLinks.containsKey(url);
         if (!isExist) {
             uniqueLinks.put(url, this);

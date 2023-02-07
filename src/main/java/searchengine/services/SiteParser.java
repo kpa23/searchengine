@@ -5,9 +5,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.hibernate.SessionFactory;
 import org.springframework.stereotype.Service;
-import searchengine.config.Parse;
 import searchengine.model.IndexT;
 import searchengine.model.PageT;
 import searchengine.model.SiteT;
@@ -36,7 +34,7 @@ public class SiteParser implements Runnable {
     private final LemmaTRepository lemmaTRepository;
     private final IndexTRepository indexTRepository;
     private final LemmaParser lemmaParser;
-//    private final ParsePage;
+
 
     public SiteParser copy() {
         return new SiteParser(this.pageTRepository, this.siteTRepository, this.lemmaTRepository, this.indexTRepository, this.lemmaParser);
