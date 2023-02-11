@@ -5,13 +5,18 @@
             %d{yyyy-MM-dd HH:mm:ss.SSS} %5p ${hostName} --- [%15.15t] %-40.40c{1.} : %m%n%ex
         </Property>
     </Properties>
+    <CustomLevels>
+        <CustomLevel name="DIAG" intLevel="350" />
+        <CustomLevel name="BAD" intLevel="380" />
+    </CustomLevels>
     <Appenders>
-        <Console name="ConsoleAppender" target="SYSTEM_OUT" follow="true">
+        <Console name="Console" target="SYSTEM_OUT" follow="true">
             <PatternLayout pattern="${LOG_PATTERN}"/>
         </Console>
         <!-- Rolling File Appender -->
-        <RollingFile name="FileAppender" fileName="logs/log4j2.log"
-                     filePattern="logs/log4j2-%d{yyyy-MM-dd}-%i.log">
+        <RollingFile name="SearchQuery" fileName="logs/search.log"
+                     filePattern="logs/search-%d{yyyy-MM-dd}-%i.log">
+            <ThresholdFilter level="WARN" onMatch="DENY" onMismatch="ACCEPT"/>
             <PatternLayout>
                 <Pattern>${LOG_PATTERN}</Pattern>
             </PatternLayout>
@@ -20,15 +25,25 @@
             </Policies>
             <DefaultRolloverStrategy max="10"/>
         </RollingFile>
+
+        <RollingFile name="BadQuery" fileName="logs/bad.log"
+                     filePattern="logs/bad-%d{yyyy-MM-dd}-%i.log">
+            <ThresholdFilter level="DIAG" onMatch="DENY" onMismatch="ACCEPT"/>
+            <PatternLayout>
+                <Pattern>${LOG_PATTERN}</Pattern>
+            </PatternLayout>
+            <Policies>
+                <SizeBasedTriggeringPolicy size="10MB" />
+            </Policies>
+            <DefaultRolloverStrategy max="10"/>
+        </RollingFile>
+
     </Appenders>
     <Loggers>
-        <Logger name="com.example.log4j2" level="debug" additivity="false">
-            <AppenderRef ref="ConsoleAppender" />
-        </Logger>
-
-        <Root level="info">
-            <AppenderRef ref="ConsoleAppender" />
-            <AppenderRef ref="FileAppender"/>
+        <Root level="INFO">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="SearchQuery" level="DIAG"/>
+            <AppenderRef ref="BadQuery" level="BAD"/>
         </Root>
     </Loggers>
 

@@ -1,6 +1,7 @@
 package searchengine.services;
 
 import lombok.RequiredArgsConstructor;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
@@ -83,11 +84,11 @@ public class SearchServiceImpl implements SearchService {
                 SearchData searchData = new SearchData(siteT.getUrl(), siteT.getName(), pageT.getPath(), pageT.getTitle(), snippet, searchClassAllPages.getMapRank().get(me2.getKey()).getRelRank());
                 searchResponse.dataAdd(searchData);
             }
-            logger.info("query = \t" + query);
+            logger.log(Level.forName("DIAG", 350), "query = \t" + query);
             searchResponse.setResult(true);
             searchResponse.setCount(set.size());
         } catch (IOException e) {
-            logger.error("wrong query\n" + query);
+            logger.log(Level.forName("BAD", 380), "wrong query = \t" + query);
             searchResponse.setResult(false);
         }
         return searchResponse;
